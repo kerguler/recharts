@@ -1,7 +1,13 @@
-import { Canvas, Meta, ArgTypes } from '@storybook/blocks';
-import * as XAxisStories from './XAxis.stories';
+import { Meta, Story, Canvas, Controls } from '@storybook/blocks';
+import * as ComponentStories from './XAxis.stories';
 
 # XAxis
+
+<Meta of={ComponentStories} />
+
+<Canvas>
+  <Story name="API" of={ComponentStories} />
+</Canvas>
 
 ## Parent Component
 
@@ -15,4 +21,4 @@ The XAxis can be used with the following child components: `<Label />`
 
 Properties in the groups Other and Internal are not recommended to be used.
 
-<ArgTypes of={XAxisStories} sort={'requiredFirst'} />
+<Controls of={ComponentStories.API} />

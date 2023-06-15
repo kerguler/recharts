@@ -37,7 +37,7 @@ interface ScattterPointNode {
   z?: number | string;
 }
 
-interface ScatterPointItem {
+export interface ScatterPointItem {
   cx?: number;
   cy?: number;
   size?: number;
@@ -53,6 +53,8 @@ interface ScatterProps {
 
   left?: number;
   top?: number;
+  width?: number;
+  height?: number;
 
   xAxis?: Omit<XAxisProps, 'scale'> & { scale: D3Scale<string | number> };
   yAxis?: Omit<YAxisProps, 'scale'> & { scale: D3Scale<string | number> };
@@ -357,24 +359,6 @@ export class Scatter extends PureComponent<Props, State> {
       return null;
     }
 
-    function dataPointFormatterY(dataPoint: ScatterPointItem, dataKey: Props['dataKey']) {
-      return {
-        x: dataPoint.cx,
-        y: dataPoint.cy,
-        value: +dataPoint.node.y,
-        errorVal: getValueByDataKey(dataPoint, dataKey),
-      };
-    }
-
-    function dataPointFormatterX(dataPoint: ScatterPointItem, dataKey: Props['dataKey']) {
-      return {
-        x: dataPoint.cx,
-        y: dataPoint.cy,
-        value: +dataPoint.node.x,
-        errorVal: getValueByDataKey(dataPoint, dataKey),
-      };
-    }
-
     return errorBarItems.map((item, i: number) => {
       const { direction } = item.props;
 
@@ -384,7 +368,14 @@ export class Scatter extends PureComponent<Props, State> {
         xAxis,
         yAxis,
         layout: direction === 'x' ? 'vertical' : 'horizontal',
-        dataPointFormatter: direction === 'x' ? dataPointFormatterX : dataPointFormatterY,
+        dataPointFormatter: (dataPoint: ScatterPointItem, dataKey: Props['dataKey']) => {
+          return {
+            x: dataPoint.cx,
+            y: dataPoint.cy,
+            value: direction === 'x' ? +dataPoint.node.x : +dataPoint.node.y,
+            errorVal: getValueByDataKey(dataPoint, dataKey),
+          };
+        },
       });
     });
   }
@@ -435,15 +426,22 @@ export class Scatter extends PureComponent<Props, State> {
     }
     const { isAnimationFinished } = this.state;
     const layerClass = classNames('recharts-scatter', className);
-    const needClip = (xAxis && xAxis.allowDataOverflow) || (yAxis && yAxis.allowDataOverflow);
+    const needClipX = xAxis && xAxis.allowDataOverflow;
+    const needClipY = yAxis && yAxis.allowDataOverflow;
+    const needClip = needClipX || needClipY;
     const clipPathId = _.isNil(id) ? this.id : id;
 
     return (
       <Layer className={layerClass} clipPath={needClip ? `url(#clipPath-${clipPathId})` : null}>
-        {needClip ? (
+        {needClipX || needClipY ? (
           <defs>
             <clipPath id={`clipPath-${clipPathId}`}>
-              <rect x={left} y={top} width={width} height={height} />
+              <rect
+                x={needClipX ? left : left - width / 2}
+                y={needClipY ? top : top - height / 2}
+                width={needClipX ? width : width * 2}
+                height={needClipY ? height : height * 2}
+              />
             </clipPath>
           </defs>
         ) : null}

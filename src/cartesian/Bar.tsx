@@ -7,7 +7,7 @@ import Animate from 'react-smooth';
 import _ from 'lodash';
 import { Rectangle, Props as RectangleProps } from '../shape/Rectangle';
 import { Layer } from '../container/Layer';
-import { ErrorBar, Props as ErrorBarProps } from './ErrorBar';
+import { ErrorBar, Props as ErrorBarProps, ErrorBarDataPointFormatter } from './ErrorBar';
 import { Cell } from '../component/Cell';
 import { LabelList } from '../component/LabelList';
 import { uniqueId, mathSign, interpolateNumber } from '../util/DataUtils';
@@ -36,8 +36,8 @@ import {
 } from '../util/types';
 import { ImplicitLabelType } from '../component/Label';
 
-interface BarRectangleItem extends RectangleProps {
-  value?: number;
+export interface BarRectangleItem extends RectangleProps {
+  value?: number | [number, number];
   /** the coordinate of background rectangle */
   background?: {
     x?: number;
@@ -53,6 +53,8 @@ interface InternalBarProps {
   data?: BarRectangleItem[];
   top?: number;
   left?: number;
+  width?: number;
+  height?: number;
 }
 
 type RectangleShapeType =
@@ -309,7 +311,6 @@ export class Bar extends PureComponent<Props, State> {
             className="recharts-bar-rectangle"
             {...adaptEventsOfChild(this.props, entry, i)}
             key={`rectangle-${i}`} // eslint-disable-line react/no-array-index-key
-            role="img"
           >
             {Bar.renderRectangle(shape, props)}
           </Layer>
@@ -428,14 +429,19 @@ export class Bar extends PureComponent<Props, State> {
 
     const offset = layout === 'vertical' ? data[0].height / 2 : data[0].width / 2;
 
-    function dataPointFormatter(dataPoint: BarRectangleItem, dataKey: Props['dataKey']) {
+    const dataPointFormatter: ErrorBarDataPointFormatter = (dataPoint: BarRectangleItem, dataKey) => {
+      /**
+       * if the value coming from `getComposedData` is an array then this is a stacked bar chart.
+       * arr[1] represents end value of the bar since the data is in the form of [startValue, endValue].
+       * */
+      const value = Array.isArray(dataPoint.value) ? dataPoint.value[1] : dataPoint.value;
       return {
         x: dataPoint.x,
         y: dataPoint.y,
-        value: dataPoint.value,
+        value,
         errorVal: getValueByDataKey(dataPoint, dataKey),
       };
-    }
+    };
 
     const errorBarProps = {
       clipPath: needClip ? `url(#clipPath-${clipPathId})` : null,
@@ -467,15 +473,22 @@ export class Bar extends PureComponent<Props, State> {
 
     const { isAnimationFinished } = this.state;
     const layerClass = classNames('recharts-bar', className);
-    const needClip = (xAxis && xAxis.allowDataOverflow) || (yAxis && yAxis.allowDataOverflow);
+    const needClipX = xAxis && xAxis.allowDataOverflow;
+    const needClipY = yAxis && yAxis.allowDataOverflow;
+    const needClip = needClipX || needClipY;
     const clipPathId = _.isNil(id) ? this.id : id;
 
     return (
       <Layer className={layerClass}>
-        {needClip ? (
+        {needClipX || needClipY ? (
           <defs>
             <clipPath id={`clipPath-${clipPathId}`}>
-              <rect x={left} y={top} width={width} height={height} />
+              <rect
+                x={needClipX ? left : left - width / 2}
+                y={needClipY ? top : top - height / 2}
+                width={needClipX ? width : width * 2}
+                height={needClipY ? height : height * 2}
+              />
             </clipPath>
           </defs>
         ) : null}
