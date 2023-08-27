@@ -27,6 +27,7 @@ import {
   TickItem,
   adaptEventsOfChild,
   PresentationAttributesAdaptChildEvent,
+  AnimationDuration,
 } from '../util/types';
 import { polarToCartesian } from '../util/PolarUtils';
 // TODO: Cause of circular dependency. Needs refactoring of functions that need them.
@@ -68,7 +69,7 @@ interface RadialBarProps {
   onAnimationEnd?: () => void;
   isAnimationActive?: boolean;
   animationBegin?: number;
-  animationDuration?: number;
+  animationDuration?: AnimationDuration;
   animationEasing?: AnimationTiming;
 }
 
@@ -292,7 +293,7 @@ export class RadialBar extends PureComponent<Props, State> {
         ...entry,
         ...adaptEventsOfChild(this.props, entry, i),
         key: `sector-${i}`,
-        className: 'recharts-radial-bar-sector',
+        className: `recharts-radial-bar-sector ${entry.className}`,
         forceCornerRadius: others.forceCornerRadius,
         cornerIsExternal: others.cornerIsExternal,
       };
